@@ -514,6 +514,38 @@ class ActionsDigiriskdolibarr
 		} elseif (strpos($parameters['context'], 'categoryindex') !== false) {	    // do something only for the context 'somecontext1' or 'somecontext2'
             print '<script src="../custom/digiriskdolibarr/js/digiriskdolibarr.js"></script>';
         }
+        if (preg_match('/projecttaskscard/', $parameters['context'])) {
+            if (GETPOST('action') == 'edit' || GETPOST('action') == 'create') {
+                require_once __DIR__ . '/../class/riskanalysis/risk.class.php';
+                require_once __DIR__ . '/../class/riskanalysis/riskassessment.class.php';
+
+                $risk       = new Risk($db);
+                $form       = new Form($db);
+                $evaluation = new RiskAssessment($db);
+
+                $risks   = $risk->fetchAll('', '', 0, 0, ['customsql' => 't.entity = ' . $conf->entity]);
+                $choices = [];
+                foreach ($risks as $risk) {
+                    $evaluations        = $evaluation->fetchAll('', '', 0, 0, ['customsql' => 't.entity = ' . $conf->entity . ' AND t.fk_risk = ' . $risk->id]);
+                    $lastEvaluation     = end($evaluations);
+                    $length             = 25;
+                    $choices[$risk->id] = $risk->ref . ' - ';
+                    if ($lastEvaluation->comment) {
+                        $choices[$risk->id] .= $lastEvaluation->cotation . ' ' . dol_trunc($lastEvaluation->comment, $length);
+                    } else {
+                        $choices[$risk->id] .= $lastEvaluation->cotation . ' ' . dol_trunc($risk->description, $length);
+                    }
+                }
+
+                $selector = $form->selectarray('options_fk_risk', $choices, GETPOST('options_fk_risk'), 1);
+
+                ?>
+                <script>
+                     jQuery('tr .project_task_extras_fk_risk').html(<?php echo json_encode($selector) ?>);
+                </script>
+                <?php
+            }
+        }
 
 		if (true) {
 			$this->results   = array('myreturn' => 999);
